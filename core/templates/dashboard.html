@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Pénzügyőr</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <h1 class="mb-4">Szia, {{ user.username }}! Itt a költségvetésed:</h1>
+
+    <div class="row text-center">
+        <div class="col-md-4">
+            <div class="card bg-success text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Havi Bevétel</h5>
+                    <p class="card-text fs-3">{{ total_income }} Ft</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Havi Kiadás</h5>
+                    <p class="card-text fs-3">{{ total_expense }} Ft</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Egyenleg</h5>
+                    <p class="card-text fs-3 fw-bold">{{ balance }} Ft</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="{% url 'add_transaction' %}" class="btn btn-warning mb-4 fw-bold">Új tranzakció rögzítése</a>
+    <a href="{% url 'logout' %}" class="btn btn-outline-danger mb-4 fw-bold">Kijelentkezés</a>
+
+    <h3>Utolsó tranzakciók</h3>
+    <ul class="list-group">
+        {% for t in transactions %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ t.date }} | {{ t.category.name }} ({{ t.description }})
+            <span class="badge {% if t.is_expense %}bg-danger{% else %}bg-success{% endif %} rounded-pill fs-6">
+                {% if t.is_expense %}-{% else %}+{% endif %}{{ t.amount }} Ft
+            </span>
+        </li>
+        {% empty %}
+        <li class="list-group-item">Még nincs rögzített tranzakció. Hozz létre egyet!</li>
+        {% endfor %}
+    </ul>
+</div>
+</body>
+</html>

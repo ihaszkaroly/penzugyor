@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Új Kategória</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5" style="max-width: 600px;">
+    <h2 class="mb-4">Új kategória létrehozása</h2>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kategória neve (pl. Élelmiszer, Fizetés)</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Típus</label>
+                    <select name="type" class="form-select" required>
+                        <option value="EXPENSE">Kiadás</option>
+                        <option value="INCOME">Bevétel</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 fw-bold">Létrehozás</button>
+                <a href="{% url 'add_transaction' %}" class="btn btn-secondary w-100 mt-2">Mégse</a>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
