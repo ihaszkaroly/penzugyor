@@ -1,5 +1,7 @@
 # Pénzügyőr - Lokális Futtatási Útmutató 
 
+## [Pénzügyőr szerveren](https://penzugyor.onrender.com)
+
 <img width="2560" height="1032" alt="kép" src="https://github.com/user-attachments/assets/02489a35-4954-43d6-881a-227d8db406a0" />
 
 
