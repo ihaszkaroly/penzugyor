@@ -14,11 +14,11 @@
                 {% csrf_token %}
                 {{ form.as_p }}
                 <div class="form-check text-start mb-3 mt-3">
-                <input class="form-check-input" type="checkbox" value="" id="adatkezeles" required>
-                    <label class="form-check-label" for="adatkezeles" style="font-size: 0.9em;">
-                        Elolvastam és elfogadom az <a href="#">Adatkezelési tájékoztatót</a>.
-                    </label>
-                </div>
+    <input class="form-check-input" type="checkbox" value="" id="adatkezeles" required>
+    <label class="form-check-label" for="adatkezeles" style="font-size: 0.9em;">
+        Elolvastam és elfogadom az <a href="{% url 'privacy' %}" target="_blank">Adatkezelési tájékoztatót</a>.
+    </label>
+</div>
 
                 <button type="submit" class="btn btn-primary w-100 fw-bold mt-2">Fiók létrehozása</button>
             </form>

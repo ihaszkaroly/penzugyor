@@ -111,3 +111,7 @@ def delete_transaction(request, transaction_id):
     transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
     transaction.delete()
     return redirect('dashboard')
+
+def privacy_policy(request):
+    """Adatkezelési tájékoztató megjelenítése"""
+    return render(request, 'privacy.html')
