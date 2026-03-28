@@ -4,6 +4,7 @@ from django.db.models import Sum
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
 from .models import Transaction, Category
+from django.shortcuts import render, redirect, get_object_or_404
 
 
 @login_required(login_url='/login/')
@@ -103,3 +104,10 @@ def add_category(request):
         return redirect('add_transaction')
 
     return render(request, 'add_category.html')
+
+@login_required(login_url='/login/')
+def delete_transaction(request, transaction_id):
+    """Tranzakció törlése (Szigorúan ellenőrizve, hogy az övé-e)"""
+    transaction = get_object_or_404(Transaction, id=transaction_id, user=request.user)
+    transaction.delete()
+    return redirect('dashboard')
