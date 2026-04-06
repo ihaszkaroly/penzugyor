@@ -12,13 +12,30 @@
 
             <form method="POST">
                 {% csrf_token %}
-                {{ form.as_p }}
+
+                {% if form.errors %}
+                    <div class="text-danger mb-2">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <p class="d-flex justify-content-between w-100">{{ form.username.label_tag }} {{ form.username }}</p>
+                <p class="d-flex justify-content-between w-100">{{ form.password1.label_tag }} {{ form.password1 }}</p>
+                <p class="d-flex justify-content-between w-100">{{ form.password2.label_tag }} {{ form.password2 }}</p>
+
+                <p>{{ form.password1.help_text }}</p>
+
+
                 <div class="form-check text-start mb-3 mt-3">
-    <input class="form-check-input" type="checkbox" value="" id="adatkezeles" required>
-    <label class="form-check-label" for="adatkezeles" style="font-size: 0.9em;">
-        Elolvastam és elfogadom az <a href="{% url 'privacy' %}" target="_blank">Adatkezelési tájékoztatót</a>.
-    </label>
-</div>
+                    <input class="form-check-input" type="checkbox" value="" id="adatkezeles" required>
+                    <label class="form-check-label" for="adatkezeles" style="font-size: 0.9em;">
+                        Elolvastam és elfogadom az <a href="{% url 'privacy' %}" target="_blank">Adatkezelési tájékoztatót</a>.
+                    </label>
+                </div>
 
                 <button type="submit" class="btn btn-primary w-100 fw-bold mt-2">Fiók létrehozása</button>
             </form>

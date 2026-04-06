@@ -5,6 +5,8 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
 from .models import Transaction, Category
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.db.models.functions import TruncMonth
 
 
 @login_required(login_url='/login/')
@@ -16,11 +18,19 @@ def dashboard(request):
     total_expense = user_transactions.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
     balance = total_income - total_expense
 
+    # Jelenlegi hónap adatok:
+    this_month_income = user_transactions.filter(category__type='INCOME', date__year=timezone.now().year, date__month=timezone.now().month).aggregate(Sum('amount'))['amount__sum'] or 0
+    this_month_expense = user_transactions.filter(category__type='EXPENSE', date__year=timezone.now().year, date__month=timezone.now().month).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    # Hónapokra szűrés gombokhoz lista:
+    user_transactions_month = user_transactions.annotate(month=TruncMonth('date')).values('month').distinct().order_by('-month')
+
     context = {
-        'transactions': user_transactions[:10],
-        'total_income': total_income,
-        'total_expense': total_expense,
+        'transactions': user_transactions,
         'balance': balance,
+        'this_month_income': this_month_income,
+        'this_month_expense': this_month_expense,
+        'month_list': user_transactions_month,
     }
     return render(request, 'dashboard.html', context)
 
