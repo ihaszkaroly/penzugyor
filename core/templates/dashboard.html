@@ -89,11 +89,9 @@
         {% endfor %}
     </ul>
 
-    {% if transactions.count >= 10 %}
-        <div class="d-flex justify-content-center mb-4">
-            <button id="show-more-btn" class="btn btn-outline-primary mt-2">További tranzakciók</button>
-        </div>
-    {% endif %}
+    <div class="d-flex justify-content-center mb-4">
+        <button id="show-more-btn" class="btn btn-outline-primary mt-2 {% if transactions.count <= 10 %}d-none{% endif %}">További tranzakciók</button>
+    </div>
 </div>
 
     <script src="{% static 'dashboard.js' %}"></script>

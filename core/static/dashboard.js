@@ -74,7 +74,6 @@ function sortByMonth(event) {
     // Lista szűrése:
     let j = 1;
     items.forEach(item => {
-
         const dateTextFull = item.querySelector("div").textContent.trim().split("|")[0];
         const dateTextYear = dateTextFull.split(" ")[0];
         const dateTextMonth = dateTextFull.split(" ")[1];
