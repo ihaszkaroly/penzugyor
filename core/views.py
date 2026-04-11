@@ -7,30 +7,80 @@ from .models import Transaction, Category
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.db.models.functions import TruncMonth
-
+from django.utils import timezone
+from datetime import datetime
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth
+import json
 
 @login_required(login_url='/login/')
 def dashboard(request):
-    """A főoldal logikája"""
-    user_transactions = Transaction.objects.filter(user=request.user).order_by('-date')
+    # 1. Kikeressük azokat a hónapokat, amikor volt tranzakciója a felhasználónak
+    months_data = Transaction.objects.filter(user=request.user).annotate(
+        month_trunc=TruncMonth('date')
+    ).values('month_trunc').distinct().order_by('-month_trunc')
 
-    total_income = user_transactions.filter(category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
-    total_expense = user_transactions.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
-    balance = total_income - total_expense
+    # Szép magyar hónapnevek a legördülő listához
+    hu_months = ['', 'Január', 'Február', 'Március', 'Április', 'Május', 'Június',
+                 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December']
 
-    # Jelenlegi hónap adatok:
-    this_month_income = user_transactions.filter(category__type='INCOME', date__year=timezone.now().year, date__month=timezone.now().month).aggregate(Sum('amount'))['amount__sum'] or 0
-    this_month_expense = user_transactions.filter(category__type='EXPENSE', date__year=timezone.now().year, date__month=timezone.now().month).aggregate(Sum('amount'))['amount__sum'] or 0
+    available_months = []
+    for m in months_data:
+        dt = m['month_trunc']
+        if dt:
+            val = f"{dt.year}-{dt.month:02d}"  # Pl: 2024-03
+            disp = f"{dt.year}. {hu_months[dt.month]}"  # Pl: 2024. Március
+            available_months.append({'value': val, 'display': disp})
 
-    # Hónapokra szűrés gombokhoz lista:
-    user_transactions_month = user_transactions.annotate(month=TruncMonth('date')).values('month').distinct().order_by('-month')
+    # 2. Hónap kiválasztása
+    selected_month = request.GET.get('month')
+
+    if not selected_month and available_months:
+        selected_month = available_months[0]['value']
+    elif not selected_month:
+        now = timezone.now()
+        selected_month = f"{now.year}-{now.month:02d}"
+
+    year, month = map(int, selected_month.split('-'))
+
+    # 3. Alapadatok lekérése a választott hónapra (Most már van year és month!)
+    all_transactions = Transaction.objects.filter(
+        user=request.user,
+        date__year=year,
+        date__month=month
+    )
+
+    # 4. Összesített statisztikák (kártyákhoz)
+    income = all_transactions.filter(category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
+    expense = all_transactions.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
+    balance = income - expense
+
+    # 5. Kategóriánkénti csoportosítás (Diagramhoz)
+    income_cats = all_transactions.filter(category__type='INCOME').values('category__name').annotate(
+        total=Sum('amount')).order_by('-total')
+    expense_cats = all_transactions.filter(category__type='EXPENSE').values('category__name').annotate(
+        total=Sum('amount')).order_by('-total')
+
+    # Előkészítjük az adatokat a Javascript számára
+    cat_labels = [c['category__name'] for c in income_cats] + [c['category__name'] for c in expense_cats]
+
+    # FIGYELEM: Itt a "c['total']"-t int()-té (egész számmá) alakítjuk, hogy a Javascript is megértse!
+    cat_amounts = [int(c['total']) for c in income_cats] + [int(c['total']) for c in expense_cats]
+
+    cat_colors = ['#198754'] * len(income_cats) + ['#dc3545'] * len(expense_cats)
 
     context = {
-        'transactions': user_transactions,
+        'transactions': all_transactions.order_by('-date'),
+        'total_income': income,
+        'total_expense': expense,
         'balance': balance,
-        'this_month_income': this_month_income,
-        'this_month_expense': this_month_expense,
-        'month_list': user_transactions_month,
+        'selected_month': selected_month,
+        'available_months': available_months,
+
+        # A json.dumps() biztosítja, hogy tökéletes Javascript kódként menjen át az adat
+        'cat_labels': json.dumps(cat_labels),
+        'cat_amounts': json.dumps(cat_amounts),
+        'cat_colors': json.dumps(cat_colors),
     }
     return render(request, 'dashboard.html', context)
 
