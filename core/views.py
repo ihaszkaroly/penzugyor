@@ -13,6 +13,7 @@ from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 import json
 
+
 @login_required(login_url='/login/')
 def dashboard(request):
     # 1. Kikeressük azokat a hónapokat, amikor volt tranzakciója a felhasználónak
@@ -28,8 +29,8 @@ def dashboard(request):
     for m in months_data:
         dt = m['month_trunc']
         if dt:
-            val = f"{dt.year}-{dt.month:02d}"  # Pl: 2024-03
-            disp = f"{dt.year}. {hu_months[dt.month]}"  # Pl: 2024. Március
+            val = f"{dt.year}-{dt.month:02d}"
+            disp = f"{dt.year}. {hu_months[dt.month]}"
             available_months.append({'value': val, 'display': disp})
 
     # 2. Hónap kiválasztása
@@ -43,7 +44,7 @@ def dashboard(request):
 
     year, month = map(int, selected_month.split('-'))
 
-    # 3. Alapadatok lekérése a választott hónapra (Most már van year és month!)
+    # 3. Alapadatok lekérése a választott hónapra
     all_transactions = Transaction.objects.filter(
         user=request.user,
         date__year=year,
@@ -64,9 +65,8 @@ def dashboard(request):
     # Előkészítjük az adatokat a Javascript számára
     cat_labels = [c['category__name'] for c in income_cats] + [c['category__name'] for c in expense_cats]
 
-    # FIGYELEM: Itt a "c['total']"-t int()-té (egész számmá) alakítjuk, hogy a Javascript is megértse!
+    # FIGYELEM! Itt a .total értékeket egész számmá (int) alakítjuk!
     cat_amounts = [int(c['total']) for c in income_cats] + [int(c['total']) for c in expense_cats]
-
     cat_colors = ['#198754'] * len(income_cats) + ['#dc3545'] * len(expense_cats)
 
     context = {
@@ -77,7 +77,7 @@ def dashboard(request):
         'selected_month': selected_month,
         'available_months': available_months,
 
-        # A json.dumps() biztosítja, hogy tökéletes Javascript kódként menjen át az adat
+        # FIGYELEM! A json.dumps() biztosítja a hibátlan Javascript adatátadást
         'cat_labels': json.dumps(cat_labels),
         'cat_amounts': json.dumps(cat_amounts),
         'cat_colors': json.dumps(cat_colors),
