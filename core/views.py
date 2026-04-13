@@ -74,21 +74,31 @@ def dashboard(request):
     # ==========================================
     advisor_messages = []
 
-    # 1. Előző havi adatok lekérése a "Nyereségszéria" vizsgálatához
-    prev_month, prev_year = (12, year - 1) if month == 1 else (month - 1, year)
-    prev_transactions = Transaction.objects.filter(user=request.user, date__year=prev_year, date__month=prev_month)
-    prev_income = prev_transactions.filter(category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
-    prev_expense = prev_transactions.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
-    prev_balance = prev_income - prev_expense
+    # 1. Előző KÉT hónap kiszámolása a "Nyereségszéria" vizsgálatához
+    # Egy hónappal ezelőtt (pl. ha most március van, akkor február):
+    prev1_month, prev1_year = (12, year - 1) if month == 1 else (month - 1, year)
+    # Két hónappal ezelőtt (pl. ha most március van, akkor január):
+    prev2_month, prev2_year = (12, prev1_year - 1) if prev1_month == 1 else (prev1_month - 1, prev1_year)
 
-    # Szabály 1: Nyereségszéria (Két hónapja pluszban van)
-    if balance > 0 and prev_balance > 0:
+    # Első előző hónap (prev1) egyenlegének kiszámolása
+    prev1_trans = Transaction.objects.filter(user=request.user, date__year=prev1_year, date__month=prev1_month)
+    prev1_inc = prev1_trans.filter(category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
+    prev1_exp = prev1_trans.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
+    prev1_balance = prev1_inc - prev1_exp
+
+    # Második előző hónap (prev2) egyenlegének kiszámolása
+    prev2_trans = Transaction.objects.filter(user=request.user, date__year=prev2_year, date__month=prev2_month)
+    prev2_inc = prev2_trans.filter(category__type='INCOME').aggregate(Sum('amount'))['amount__sum'] or 0
+    prev2_exp = prev2_trans.filter(category__type='EXPENSE').aggregate(Sum('amount'))['amount__sum'] or 0
+    prev2_balance = prev2_inc - prev2_exp
+
+    # Szabály 1: Nyereségszéria (Az előző 2 LEZÁRT hónap pluszban volt)
+    if prev1_balance > 0 and prev2_balance > 0:
         advisor_messages.append({
             'type': 'success',
             'icon': '📈',
-            'text': 'Kiváló munka! Az előző és a jelenlegi hónapot is nyereséggel zártad. Érdemes elgondolkodnod a többlet lekötésén (pl. állampapír)!'
+            'text': 'Kiváló munka! Az előző két lezárt hónapot stabil nyereséggel zártad. Érdemes elgondolkodnod a felhalmozott többlet lekötésén (pl. állampapír vagy vésztartalék)!'
         })
-
     # Szabály 2: Deficit Riasztó (Több a kiadás, mint a bevétel)
     if balance < 0:
         advisor_messages.append({
@@ -107,13 +117,47 @@ def dashboard(request):
                     'text': f"A bevételeid több mint 20%-át elviszi a(z) '{cat['category__name']}' kategória! Ha spórolni akarsz, itt érdemes megfognod a pénzt."
                 })
 
-    # Szabály 4: Üres naptár (Ha az aktuális hónapot nézi, 10 nap eltelt, de nincs adat)
-    now = timezone.now()
-    if year == now.year and month == now.month and now.day > 10 and not all_transactions.exists():
+    # Szabály 4: Inaktivitás figyelő (Ha 10 napja nem volt mozgás) - KIHÚZVA A SZÉLÉRE!
+    now_date = timezone.now().date()
+
+    # Megkeressük a legutolsó rögzített tranzakciót (bármikori is legyen az)
+    last_transaction = Transaction.objects.filter(user=request.user).order_by('-date').first()
+
+    if last_transaction:
+        # Kiszámoljuk a különbséget (mai nap mínusz az utolsó tranzakció napja)
+        days_since_last = (now_date - last_transaction.date).days
+
+        if days_since_last > 10:
+            # Szép formátummá alakítjuk a dátumot (pl. 2026. 04. 01.)
+            last_date_str = last_transaction.date.strftime("%Y. %m. %d.")
+            advisor_messages.append({
+                'type': 'info',
+                'icon': '🗓️',
+                'text': f'Figyelem! Már {days_since_last} napja nem rögzítettél új tételt (utolsó: {last_date_str}). Ne hagyd felgyülemleni a blokkokat a pénztárcádban!'
+            })
+    else:
+        # Ha még az égvilágon semmit nem rögzített a fiókjában
+        if now_date.day > 10:
+            advisor_messages.append({
+                'type': 'info',
+                'icon': '🗓️',
+                'text': f'Már a hónap {now_date.day}. napja van, de még sosem rögzítettél tranzakciót. Kezdd el a naplózást a pontos statisztikákhoz!'
+            })
+
+    # Ha minden tökéletes, és egyik szabály sem riasztott:
+    if not advisor_messages and all_transactions.exists():
         advisor_messages.append({
-            'type': 'info',
-            'icon': '🗓️',
-            'text': 'Már jócskán benne vagyunk a hónapban, de még nem rögzítettél semmit. Ne felejtsd el vezetni a napi költéseket a pontos statisztikához!'
+            'type': 'secondary',
+            'icon': '🛡️',
+            'text': 'A pénzügyi mutatóid jelenleg stabilak, nem találtam kirívó anomáliát a rendszerben. Csak így tovább!'
+        })
+
+    # Ha minden tökéletes, és egyik szabály sem riasztott:
+    if not advisor_messages and all_transactions.exists():
+        advisor_messages.append({
+            'type': 'secondary',
+            'icon': '🛡️',
+            'text': 'A pénzügyi mutatóid jelenleg stabilak, nem találtam kirívó anomáliát a rendszerben. Csak így tovább!'
         })
 
     # Ha minden tökéletes, és egyik szabály sem riasztott:
