@@ -190,6 +190,9 @@ def add_transaction(request):
     """Új tranzakció hozzáadása"""
     if request.method == 'POST':
         amount = request.POST.get('amount')
+        if int(amount) <= 0:
+            return redirect('dashboard')
+            
         category_id = request.POST.get('category_id')
         date = request.POST.get('date')
         description = request.POST.get('description')
